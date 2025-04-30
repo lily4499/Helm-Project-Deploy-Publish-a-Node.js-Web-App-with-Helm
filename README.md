@@ -443,10 +443,18 @@ helm uninstall lilihelmapp-release
 helm repo add lilihelmapp https://<username>.github.io/nodewebapp
 helm repo update
 helm install lilihelmapp-release lilihelmapp/lilihelmapp
+# The first part (lilihelmapp/) is the name of the Helm repository that was previously added via:helm repo add
+# The second part (lilihelmapp) is the name of the chart inside that repository (defined in Chart.yaml).
 kubectl get pods
 kubectl get svc
 ```
 Visit service in your browser.
 ---
 
+🧠 What Happens Internally?
+> Helm fetches the chart named lilihelmapp from the Helm repo lilihelmapp.
+> It uses the chart’s default values.yaml (unless overridden with -f).
+> It renders the Kubernetes manifests from the templates.
+> It applies those manifests to the Kubernetes cluster.
+> It tracks the whole installation using the release name lilihelmapp-release.
 
