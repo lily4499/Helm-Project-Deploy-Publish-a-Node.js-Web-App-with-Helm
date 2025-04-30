@@ -9,15 +9,7 @@
 You are a DevOps engineer at a startup deploying a **Node.js app**. You use **Helm** to package the app, manage environments (dev/prod), and publish it on **Artifact Hub** for others to reuse.
 
 ---
-
-## 🧱 Step 1: Containerize Your Node.js App
-
-> Purpose: Package your app with all dependencies into a Docker image for consistent deployment.
-Dockerfile defines how the image is built.
-docker build creates the image.
-
-docker push uploads it to DockerHub so Helm/Kubernetes can pull it.
-### a. App Structure
+## Project Structure
 ```bash
 lilihelmapp/
 ├── app/
@@ -32,8 +24,22 @@ lilihelmapp/
 ├── values.yaml          # Central values file
 ├── Chart.yaml           # Helm chart metadata
 ```
+---
 
-### b. Sample `app.js`
+## file-setup.py
+
+```python
+
+
+```
+
+
+---
+
+## 🧱 Step 1: Containerize Your Node.js App
+> Package your app with all dependencies into a Docker image for consistent deployment.
+
+### a. Sample `app.js`
 ```js
 const express = require('express');
 const app = express();
@@ -41,7 +47,7 @@ app.get('/', (req, res) => res.send('Hello from Lili Helm App!'));
 app.listen(80);
 ```
 
-### c. `package.json`
+### b. `package.json`
 ```json
 {
   "name": "lilihelmapp",
@@ -53,7 +59,8 @@ app.listen(80);
 }
 ```
 
-### d. `Dockerfile`
+### c. `Dockerfile`
+> Dockerfile defines how the image is built.
 ```Dockerfile
 FROM node:18
 WORKDIR /usr/src/app
@@ -64,7 +71,9 @@ EXPOSE 80
 CMD ["node", "app.js"]
 ```
 
-### e. Build and push the image
+### d. Build and push the image
+> docker build creates the image.
+> docker push uploads it to DockerHub so Helm/Kubernetes can pull it.
 ```bash
 docker build -t laly9999/lilihelmapp:1.0.0 ./app
 docker push laly9999/lilihelmapp:1.0.0
@@ -73,7 +82,7 @@ docker push laly9999/lilihelmapp:1.0.0
 ---
 
 ## 🎯 Step 2: Create Helm Chart
-
+> Bootstraps a default Helm chart with recommended structure, templates, and values. Saves time setting up.
 ```bash
 helm create lilihelmapp
 cd lilihelmapp
@@ -82,6 +91,7 @@ rm -f templates/*.yaml
 ```
 
 ### ✅ Add Templated Files
+> Replaces generic nginx manifests with your custom app’s Kubernetes manifests, e.g., for your Node.js app.
 
 #### templates/deployment.yaml
 ```yaml
@@ -123,6 +133,9 @@ spec:
 ```
 
 #### templates/NOTES.txt
+> Give users helpful info after installation (e.g., how to access the app).
+> Automatically printed by Helm after install/upgrade.
+
 ```txt
 🚀 Access your application:
 
@@ -136,8 +149,9 @@ Option 2: LoadBalancer IP
 ---
 
 ## 📄 Step 3: Define Values
+> Store config for different environments in a structured, version-controlled way.
 
-### `values.yaml`
+### `values.yaml`   # Default/base values
 ```yaml
 appName: lilihelmapp
 namespace: default
@@ -145,17 +159,24 @@ image:
   name: laly9999/lilihelmapp
   tag: "1.0.0"
 ```
-
-### `values-dev.yaml`
+Use these in templates like:
 ```yaml
-appName: lilihelmapp-dev
+{{ .Values.appName }}
+{{ .Values.namespace }}
+{{ .Values.image.name }}:{{ .Values.image.tag }}
+
+```
+
+### `values-dev.yaml`   #Overrides for the dev namespace
+```yaml
+appName: lilihelmapp-dev   
 namespace: dev
 image:
   name: laly9999/lilihelmapp
   tag: "dev"
 ```
 
-### `values-prod.yaml`
+### `values-prod.yaml`   #Overrides for the prod namespace
 ```yaml
 appName: lilihelmapp-prod
 namespace: prod
@@ -167,6 +188,10 @@ image:
 ---
 
 ## 🚀 Step 4: Install Helm Release
+> Deploy the chart to Kubernetes for the first time.
+> Helm renders templates using values and applies them via kubectl.
+> Your app is deployed in its namespace with appropriate configs.
+
 
 ```bash
 helm install lilihelmapp-release lilihelmapp
@@ -181,7 +206,9 @@ kubectl get svc
 ---
 
 ## 🔁 Step 5: Upgrade Helm Release
-
+> Apply updates to your app when templates or values change.
+> Avoids deleting and re-installing.
+> Helm compares the current state with desired and patches the resources.
 ```bash
 helm upgrade lilihelmapp-release lilihelmapp --values lilihelmapp/values.yaml
 ```
@@ -189,25 +216,55 @@ helm upgrade lilihelmapp-release lilihelmapp --values lilihelmapp/values.yaml
 ---
 
 ## 🧪 Step 6: Dev and Prod Namespaces
-
+>Isolate environments (dev, prod) in separate namespaces.
+>Ensures resource separation.
+ Prevents dev changes from affecting prod workloads.
 ```bash
 kubectl create namespace dev
 kubectl create namespace prod
 ```
-
+Install releases:
+> Deploy the same chart in different environments with different values.
+> Promotes reusability and consistency across environments.
+> No need to duplicate YAML files.
 ```bash
 helm install lilihelmapp-release-dev lilihelmapp/ -f lilihelmapp/values.yaml -f lilihelmapp/values-dev.yaml -n dev
 helm install lilihelmapp-release-prod lilihelmapp/ -f lilihelmapp/values.yaml -f lilihelmapp/values-prod.yaml -n prod
 ```
+Check all:
+```bash
+helm ls -A
+```
+Rollback:
+> Roll back to a previous release version if something goes wrong.
+> Ensures quick recovery.
+> Helm tracks revision history automatically.
+```bash
+helm rollback  lilihelmapp-release-dev 1
 
+```
 ---
+---
+--------------------------------------------------Publish to Artifact Hub-------------------------------------------
 
 ## 📦 Step 7: Package Helm Chart
 
+###  Create external directory
+> You need a clean repo directory for hosting.
+
+```bash
+mkdir nodewebapp && cd nodewebapp
+pwd  # Note this path
+> Bundle your chart into a .tgz archive for distribution.
+> Required for publishing to Artifact Hub or GitHub Pages.
+> Can be versioned and reused.
 ```bash
 cd ..
 helm package lilihelmapp
 mv lilihelmapp-0.1.0.tgz nodewebapp/
+
+### Create index.yaml
+> helm repo index generates index.yaml relative to this folder.
 cd nodewebapp
 helm repo index .
 ```
