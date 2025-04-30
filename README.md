@@ -191,6 +191,13 @@ CMD ["node", "app.js"]
 ```bash
 docker build -t laly9999/lilihelmapp:1.0.0 ./app
 docker push laly9999/lilihelmapp:1.0.0
+
+# Build the image with `dev` tag
+docker build -t laly9999/lilihelmapp:dev ./app
+
+# Push to DockerHub
+docker push laly9999/lilihelmapp:dev
+
 ```
 
 ---
